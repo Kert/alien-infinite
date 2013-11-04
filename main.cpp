@@ -12,11 +12,13 @@
 bool ENDGAME=false;
 
 SDL_Texture *img = NULL;
+SDL_Texture *player_texture = NULL;
+
 SDL_Window *win = NULL;
 SDL_Renderer *renderer = NULL;
 
-int a = 30, b = 150;
-SDL_Rect texr, player;
+int player_x = 30, player_y = 150;
+SDL_Rect texr, player_rect;
 	
 bool q1=false, q2=false, q3=false, q4=false;
 bool jumping = false;	// состояние прыжка
@@ -61,6 +63,14 @@ SDL_Surface *load_image( std::string filename )
 */
 
 
+void ShowSprite(SDL_Rect &onscreen, SDL_Texture *img, int x, int y, int h, int w)
+{
+	SDL_Rect rect;
+	rect.x = x; rect.y = y; rect.w = w; rect.h = h;
+	SDL_RenderCopy(renderer, img, &onscreen, &rect);
+}
+
+
 void key_state_check(SDL_Event &e, SDL_Keycode key, bool &q)
 {
 	if (e.type == SDL_KEYUP && e.key.keysym.sym == key)
@@ -75,9 +85,7 @@ void key_state_check(SDL_Event &e, SDL_Keycode key, bool &q)
 
 void CallUpdate()
 {
-		
-		player.x = a;
-		player.y = b;
+
 		// event handling
 		SDL_Event e;
 		if ( SDL_PollEvent(&e) ) {
@@ -92,20 +100,18 @@ void CallUpdate()
 			key_state_check(e, SDLK_DOWN, q4);
 			
 		}
-		if(q1) a-=5;
-		if(q2) a+=5;
+		if(q1) player_rect.x-=5;
+		if(q2) player_rect.x+=5;
 		if(q3) if(!jumping) jumping = true;
-		//if(q4 && !jumping) b+=5;
 
 
 		if(jumping)
 		{
 			jump_powah_temp--;
-			b -= jump_powah_temp;
-			//if(!jump_powah_temp) 
-			if(b + player.h >= texr.y)
+			player_rect.y -= jump_powah_temp;
+			if(player_rect.y + player_rect.h >= texr.y)
 			{
-				b = texr.y - player.h;
+				player_rect.y = texr.y - player_rect.h;
 				jumping = false;
 				jump_powah_temp = jump_powah;
 			}
@@ -114,14 +120,18 @@ void CallUpdate()
 
 void CallDraw()
 {
-	SDL_Rect test;
-	test.h = 40; test.w=30;
-	test.x = 253; test.y=0;
+	SDL_Rect player_sprite_coords;
+	player_sprite_coords.h = 36;
+	player_sprite_coords.w = 30;
+	player_sprite_coords.x = 0;
+	player_sprite_coords.y = 0;
+
 		// clear the screen
 		SDL_RenderClear(renderer);
 		// copy the texture to the rendering context
+		texr.x = 0; texr.y = 270; texr.w = 800; texr.h = 60;
 		SDL_RenderCopy(renderer, img, NULL, &texr);
-		SDL_RenderCopy(renderer, img, &test, &player);
+		SDL_RenderCopy(renderer, player_texture, &player_sprite_coords, &player_rect);
 		// flip the backbuffer
 		// this means that everything that we prepared behind the screens is actually shown
 		SDL_RenderPresent(renderer);
@@ -129,8 +139,6 @@ void CallDraw()
 
 int main( int argc, char* argv[] )
 {
-	// variable declarations	
-	int w, h; // texture width & height
 
 	// Initialize SDL.
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -143,9 +151,12 @@ int main( int argc, char* argv[] )
 	
 	// load our image
 	img = IMG_LoadTexture(renderer, "images/hello.png");
-	SDL_QueryTexture(img, NULL, NULL, &w, &h);	
-	texr.x = 0; texr.y = 270; texr.w = 800; texr.h = 60;
-	player.x = a; player.y = b; player.w = 40; player.h = 120;
+	//SDL_QueryTexture(img, NULL, NULL, &w, &h);	
+
+	player_rect.x = 30; player_rect.y = 170;
+	player_rect.h = 36; player_rect.w = 30;
+
+	player_texture = IMG_LoadTexture(renderer, "images/player.png");
 
 	// main loop
 	while (!ENDGAME) {
