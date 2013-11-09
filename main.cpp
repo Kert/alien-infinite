@@ -2,19 +2,23 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <iostream>
-#include <time.h>
-#include <string>
 
-using namespace std;
-
+// window
 #define WIDTH 800
 #define HEIGHT 600
 
 #define MAP_WIDTH 2000
 #define MAP_HEIGHT 2000
 
+#define GRAVITY 2800
+#define JUMP_FORCE 1000
+
 #define FRAMES_PER_SECOND 60
 
+// blocks data (air or solid)
+bool tiles[1000][1000];
+
+// ends gameloop
 bool ENDGAME=false;
 
 SDL_Texture *level_texture = NULL;
@@ -28,13 +32,22 @@ TTF_Font *debug_font = NULL;
 SDL_Color debug_color = { 255, 255, 255 };
 SDL_Surface *debug_message = NULL;
 
-int player_x = 300, player_y = 150;
-SDL_Rect texr, player_rect, camera;
+SDL_Rect camera = {0, 0, WIDTH, HEIGHT};
 	
+SDL_Event event;
 bool q1=false, q2=false, q3=false, q4=false;
-bool jumping = false;	// состояние прыжка
-int jump_powah = 20;		// мощность прыжка
-int jump_powah_temp = jump_powah;
+
+void key_state_check(SDL_Event &e, SDL_Keycode key, bool &q)
+{
+	if (e.type == SDL_KEYUP && e.key.keysym.sym == key)
+	{
+		q=false;
+	}
+	else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == key)
+	{
+		q=true;
+	}
+}
 
 /*
 //The attributes of the screen
@@ -72,140 +85,509 @@ SDL_Surface *load_image( std::string filename )
     return optimizedImage;
 }
 */
-
-
-void ShowSprite(SDL_Rect &onscreen, SDL_Texture *img, int x, int y, int h, int w)
+/*
+class Tile
 {
+	private:
+	int x;
+	int y;
+	bool solid;
+
+	public:
+	Tile();
+
+	bool is_solid();
+};
+
+Tile::Tile()
+{
+	x = 0;
+	y = 0;
+	solid = false;
+}
+
+bool Tile::is_solid()
+{
+	return solid;
+}
+*/
+
+class Player
+{
+    private:
+    float x, y;
+	float xVel, yVel;
+	bool direction;
+	int player_vel;
+	int player_width;
+	int player_height;
 	SDL_Rect rect;
-	rect.x = x; rect.y = y; rect.w = w; rect.h = h;
-	SDL_RenderCopy(renderer, img, &onscreen, &rect);
+
+    public:
+    //Initializes the variables
+    Player();
+
+    //Takes key presses and adjusts the player's velocity
+    void handle_input();
+
+    void update_pos( Uint32 deltaTicks );
+
+	float get_xvelocity();
+	float get_yvelocity();
+	bool get_direction();
+	void set_direction(bool direction);
+	void get_pos(int &x, int &y);
+	void set_pos(int x, int y);
+	void get_pos_rect(int &x, int &y);
+	void set_camera();
+
+    void show();
+};
+
+Player player;
+Player::Player()
+{
+	player_vel = 380;
+	player_width = 30;
+	player_height = 26;
+
+    //Initialize the offsets
+    x = 0;
+    y = 0;
+
+    //Initialize the velocity
+    xVel = 0;
+    yVel = 0;
+
+	rect.h = 36; rect.w = 30;
 }
 
-
-void key_state_check(SDL_Event &e, SDL_Keycode key, bool &q)
+float Player::get_xvelocity()
 {
-	if (e.type == SDL_KEYUP && e.key.keysym.sym == key)
-	{
-		q=false;
-	}
-	else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == key)
-	{
-		q=true;
-	}
+	return xVel;
 }
 
-void CallUpdate()
+float Player::get_yvelocity()
 {
+	return yVel;
+}
 
-		// event handling
-		SDL_Event e;
-		if ( SDL_PollEvent(&e) ) {
-			if (e.type == SDL_QUIT)
-				ENDGAME=true;
-			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE)
-				ENDGAME=true;
+bool Player::get_direction()
+{
+	return direction;
+}
 
-			key_state_check(e, SDLK_LEFT, q1);
-			key_state_check(e, SDLK_RIGHT, q2);
-			key_state_check(e, SDLK_UP, q3);
-			key_state_check(e, SDLK_DOWN, q4);
-			
-		}
-		if(q1) // LEFT
-		{
-			if(player_rect.x > 400)
-			{
-				player_rect.x -= 5;
-				player_x-=5;
-			}
-			else
-			{
-				player_x-=5;
-				camera.x-=5; 
-							
-				if(camera.x < 0) 
-				{ 
-					camera.x = 0; 
-					player_rect.x -= 5;
-					if(player_rect.x < 32)
-					{
-						player_rect.x = 32;
-						player_x += 5;
-					}
-				}
-			}
-		}
-		if(q2) // RIGHT
-		{ 
-			if(player_rect.x < 400)
-			{
-				player_rect.x += 5;
-				player_x+=5;
-			}
-			else
-			{
-				player_x+=5;
-				camera.x+=5; 
+void Player::set_direction(bool direction)
+{
+	this->direction = direction;
+}
 
-				if(camera.x > 1000) 
+void Player::get_pos(int &x, int &y)
+{
+	x = (int)this->x;
+	y = (int)this->y;
+}
+
+void Player::set_pos(int x, int y)
+{
+	this->x = x;
+	this->y = y;
+}
+
+void Player::get_pos_rect(int &x, int &y)
+{
+	x = rect.x;
+	y = rect.y;
+}
+
+//bool released = true;
+void Player::handle_input()
+{
+	key_state_check(event, SDLK_LEFT, q1);
+	key_state_check(event, SDLK_RIGHT, q2);
+	key_state_check(event, SDLK_z, q3);
+	key_state_check(event, SDLK_x, q4);
+
+	if(q1)
+	{
+		direction = 0;
+		xVel = -player_vel;
+	}
+
+	if(q2)
+	{
+		direction = 1;
+		xVel = player_vel;
+	}
+
+	/*if( event.type == SDL_KEYDOWN )
+    {
+        switch( event.key.keysym.sym )
+        {
+            case SDLK_z:
+				if(released)
 				{
-					camera.x = 1000;
-					player_rect.x += 5;
-					if(player_rect.x > 750)
+					if(yVel == 0)
 					{
-						player_rect.x = 750;
-						player_x -= 5;
+						yVel = -JUMP_FORCE;
+						released = false;
 					}
 				}
-			}
+				break;
 		}
-		if(q3) if(!jumping) jumping = true;
+	}
 
+	if( event.type == SDL_KEYUP )
+    {
+        switch( event.key.keysym.sym )
+        {
+            case SDLK_z:
+				
+						released = true;
 
-		if(jumping)
+				break;
+		}
+	}*/
+
+	if(q3)
+	{
+		if(yVel == 0)
 		{
-			jump_powah_temp--;
-			player_rect.y -= jump_powah_temp;
-			if(player_rect.y + player_rect.h >= texr.y)
-			{
-				player_rect.y = texr.y - player_rect.h;
-				jumping = false;
-				jump_powah_temp = jump_powah;
-			}
-		}
+			yVel = -JUMP_FORCE;	
+		}		
+	}
+
+	// teleport back
+	if(q4)
+	{
+		y = 32;
+		x = 32;
+	}
+	
+	// stop if keys aren't pressed anymore
+	else if(!q1 && !q2)
+	{
+		xVel = 0;
+	}
 }
 
-void CallDraw()
+void Player::update_pos( Uint32 deltaTicks )
 {
-	char debug_str[128];
+	int tempx, tempy, tempx2, tempy2;
+
+    //Move the player left or right
+    x += xVel * ( deltaTicks / 1000.f );
+
+	tempx = x / 32;
+	tempy = y / 32;
+	tempx2 = (x+player_width) / 32;
+	tempy2 = (y+player_height) / 32;
+
+	//check collision right
+	if(tiles[tempx+1][tempy] == true || tiles[tempx+1][tempy2] == true)
+	{
+		x = tempx * 32;
+		xVel = 0;
+	}
+	
+	tempx = x / 32;
+	tempy = y / 32;
+	tempx2 = (x+player_width) / 32;
+	tempy2 = (y+player_height) / 32;
+
+	//check collision left
+	if(tiles[tempx][tempy] == true || tiles[tempx][tempy2] == true)
+	{
+		x = tempx2 * 32;
+		xVel = 0;
+	}
+
+    //If the player went too far to the left
+    if( x < 0 )
+    {
+        //Move back
+        x = 0;
+    }
+    //or the right
+    else if( x + player_width > MAP_WIDTH )
+    {
+        //Move back
+        x = MAP_WIDTH - player_width;
+    }
+
+	
+    //Move the player up or down
+    y += yVel * ( deltaTicks / 1000.f );
+	yVel += GRAVITY * ( deltaTicks / 1000.f );
+	
+	if(yVel > GRAVITY)
+	{
+		yVel = GRAVITY;
+	}
+
+    //If the player went too far up
+    if( y < 0 )
+    {
+        //Move back
+        y = 0;
+    }
+    //or down
+    else if( y + player_height > MAP_HEIGHT )
+    {
+        //Move back
+        y = MAP_HEIGHT - player_height;
+    }
+		
+	tempx = x / 32;
+	tempx2 = (x+player_width) / 32;
+	tempy = y / 32;	
+	tempy2 = (y+player_height) / 32;
+
+	//check collision above
+	if(tiles[tempx][tempy] == true || tiles[tempx2][tempy] == true)
+	{
+		y = (tempy+1) * 32;
+		yVel = 0;
+	}
+
+	tempx = x / 32;
+	tempx2 = (x+player_width) / 32;
+	tempy = y / 32;	
+	tempy2 = (y+player_height) / 32;
+
+	//check collision below
+	if(tiles[tempx][tempy+1] == true || tiles[tempx2][tempy+1] == true)
+	{
+		y = tempy * 32;
+		yVel = 0;
+	}
+}
+
+void Player::set_camera()
+{
+    //Center the camera over the player
+    camera.x = ( x + player_width / 2 ) - WIDTH / 2;
+    camera.y = ( y + player_height / 2 ) - HEIGHT / 2;
+
+    //Keep the camera in bounds.
+    if( camera.x < 0 )
+    {
+        camera.x = 0;
+    }
+    if( camera.y < 0 )
+    {
+        camera.y = 0;
+    }
+    if( camera.x > MAP_WIDTH - camera.w )
+    {
+        camera.x = MAP_WIDTH - camera.w;
+    }
+    if( camera.y > MAP_HEIGHT - camera.h )
+    {
+        camera.y = MAP_HEIGHT - camera.h;
+    }
+}
+
+void Player::show()
+{
 	SDL_Rect player_sprite_coords;
 	player_sprite_coords.h = 36;
 	player_sprite_coords.w = 30;
 	player_sprite_coords.x = 0;
 	player_sprite_coords.y = 0;
 
-	// clear the screen
-	SDL_RenderClear(renderer);
-	// copy the texture to the rendering context
-	texr.x = 0; texr.y = 270; texr.w = 800; texr.h = 60;
-	SDL_RenderCopy(renderer, level_texture, &camera, NULL);
-	SDL_RenderCopy(renderer, player_texture, &player_sprite_coords, &player_rect);
+	rect.x = (int)x - camera.x;
+	rect.y = (int)y - camera.y;
+	SDL_RenderCopy(renderer, player_texture, &player_sprite_coords, &rect);
+}
 
+class Timer
+{
+    private:
+    //The clock time when the timer started
+    int startTicks;
+
+    //The ticks stored when the timer was paused
+    int pausedTicks;
+
+    //The timer status
+    bool paused;
+    bool started;
+
+    public:
+    //Initializes variables
+    Timer();
+
+    //The various clock actions
+    void start();
+    void stop();
+    void pause();
+    void unpause();
+
+    //Gets the timer's time
+    int get_ticks();
+
+    //Checks the status of the timer
+    bool is_started();
+    bool is_paused();
+}; 
+
+Timer delta;
+Timer::Timer()
+{
+    //Initialize the variables
+    startTicks = 0;
+    pausedTicks = 0;
+    paused = false;
+    started = false;
+}
+
+void Timer::start()
+{
+    //Start the timer
+    started = true;
+
+    //Unpause the timer
+    paused = false;
+
+    //Get the current clock time
+    startTicks = SDL_GetTicks();
+}
+
+void Timer::stop()
+{
+    //Stop the timer
+    started = false;
+
+    //Unpause the timer
+    paused = false;
+}
+
+void Timer::pause()
+{
+    //If the timer is running and isn't already paused
+    if( ( started == true ) && ( paused == false ) )
+    {
+        //Pause the timer
+        paused = true;
+
+        //Calculate the paused ticks
+        pausedTicks = SDL_GetTicks() - startTicks;
+    }
+}
+
+void Timer::unpause()
+{
+    //If the timer is paused
+    if( paused == true )
+    {
+        //Unpause the timer
+        paused = false;
+
+        //Reset the starting ticks
+        startTicks = SDL_GetTicks() - pausedTicks;
+
+        //Reset the paused ticks
+        pausedTicks = 0;
+    }
+}
+
+int Timer::get_ticks()
+{
+    //If the timer is running
+    if( started == true )
+    {
+        //If the timer is paused
+        if( paused == true )
+        {
+            //Return the number of ticks when the timer was paused
+            return pausedTicks;
+        }
+        else
+        {
+            //Return the current time minus the start time
+            return SDL_GetTicks() - startTicks;
+        }
+    }
+
+    //If the timer isn't running
+    return 0;
+}
+
+bool Timer::is_started()
+{
+    return started;
+}
+
+bool Timer::is_paused()
+{
+    return paused;
+}
+
+/*
+void ShowSprite(SDL_Rect &onscreen, SDL_Texture *img, int x, int y, int h, int w)
+{
+	SDL_Rect rect;
+	rect.x = x; rect.y = y; rect.w = w; rect.h = h;
+	SDL_RenderCopy(renderer, img, &onscreen, &rect);
+}
+*/
+
+void CallUpdate()
+{
+		while( SDL_PollEvent( &event ) )
+        {
+            //Handle events for the player
+            player.handle_input();
+
+            //If the user has Xed out the window
+            if( event.type == SDL_QUIT )
+            {
+                //Quit the program
+                ENDGAME = true;
+            }
+        }
+
+		 //Move the player
+        player.update_pos( delta.get_ticks() );
+
+		player.set_camera();
+
+        //Restart delta timer
+        delta.start();
+}
+
+void ShowDebugInfo()
+{
+	char debug_str[128];
+	int x, y, rectx, recty;
+	player.get_pos(x, y);
+	player.get_pos_rect(rectx, recty);
 	SDL_FreeSurface(debug_message);
-	sprintf_s(debug_str,"PlayerX = %d. PlayerY = %d PlayerRectX = %d PlayerRectY = %d", player_x, player_y, player_rect.x, player_rect.y);
-
+	sprintf_s(debug_str,"PlayerX = %d. PlayerY = %d PlayerRectX = %d PlayerRectY = %d VelX: %d VelY: %d Direction: %d",
+		x, y, rectx, recty, (int)player.get_xvelocity(), (int)player.get_yvelocity(), player.get_direction() );
 	debug_message = TTF_RenderText_Solid( debug_font, debug_str, debug_color );
-	//SDL_UpdateTexture(debug_texture, NULL, debug_message->pixels, debug_message->pitch);
 	SDL_DestroyTexture(debug_texture);
 	debug_texture = SDL_CreateTextureFromSurface(renderer, debug_message);
-
 	SDL_Rect temp;
 	SDL_GetClipRect(debug_message, &temp);
-	//temp.h = 16;
-	//temp.w = 200;
 	temp.x = 0;
 	temp.y = HEIGHT-32;
 	SDL_RenderCopy(renderer, debug_texture, NULL, &temp);
+}
+
+void CallDraw()
+{
+	// clear the screen
+	SDL_RenderClear(renderer);
+
+	// show level map
+	SDL_RenderCopy(renderer, level_texture, &camera, NULL);
+
+	// show player sprite
+	player.show();
+
+	ShowDebugInfo();
 	
 	// flip the backbuffer
 	// this means that everything that we prepared behind the screens is actually shown
@@ -216,11 +598,18 @@ void LoadLevel(SDL_Surface * surf_map, SDL_Surface * surf_textures)
 {
 	SDL_Rect rect;
 	SDL_Rect rect2;
-	rect.x=66; rect.y=0; rect.w=32; rect.h=32;
+
+	//tile size on level map surface
 	rect2.w=32; rect2.h=32;
-	for(int i = 0; i < 20; i++)
+
+	// Load background tiles
+
+	// tile coords in texture
+	rect.x=99; rect.y=64; rect.w=32; rect.h=32;
+	
+	for(int i = 0; i <= (MAP_HEIGHT / 32); i++)
 	{
-		for(int j = 0; j < 15; j++)
+		for(int j = 0; j < (MAP_WIDTH / 32); j++)
 		{
 			rect2.x = i * 32;
 			rect2.y = j * 32;
@@ -228,45 +617,77 @@ void LoadLevel(SDL_Surface * surf_map, SDL_Surface * surf_textures)
 		}
 	}
 
-	rect.x=99; rect.y=0; rect.w=32; rect.h=32;
-	for(int i = 0; i < 20; i++)
+	// Load solid tiles
+
+	// tile coords in texture
+	rect.x=33; rect.y=0; rect.w=32; rect.h=32;
+
+	for(int i = 0; i <= (MAP_WIDTH / 32); i++)
 	{
-		for(int j = 0; j < 15; j++)
+		for(int j = 13; j < 14; j++)
 		{
-			rect2.x = i * 32 + 640;
+			rect2.x = i * 32;
 			rect2.y = j * 32;
+			tiles[i][j] = true;
 			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 		}
 	}
 
+	for(int i = 12; i <= 12; i++)
+	{
+		for(int j = 4; j < 12; j++)
+		{
+			rect2.x = i * 32;
+			rect2.y = j * 32;
+			tiles[i][j] = true;
+			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
+		}
+	}
+
+	// some other solid blocks
+	rect2.x = 10 * 32;
+	rect2.y = 10 * 32;
+	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
+	tiles[10][10] = true;
+
+	rect2.x = 11 * 32;
+	rect2.y = 9 * 32;
+	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
+	tiles[11][9] = true;
+
+	rect2.x = 8 * 32;
+	rect2.y = 8 * 32;
+	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
+	tiles[8][8] = true;
+
+	// transfer pixedata from surface to texture
+	SDL_UpdateTexture(level_texture, NULL, surf_map->pixels, surf_map->pitch);
 }
 
 int main( int argc, char* argv[] )
 {
-	
 	// Initialize SDL.
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 			return 1;
 	
+	// Initialize SDL_TTF for font rendering
 	if( TTF_Init() == -1 )
     {
         return false;    
     }
+	
+	debug_font = TTF_OpenFont( "verdana.ttf", 12 );
 	
 	// create the window and renderer
 	// note that the renderer is accelerated
 	win = SDL_CreateWindow("Image Loading", 100, 100, WIDTH, HEIGHT, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	
-	debug_font = TTF_OpenFont( "verdana.ttf", 12 );
+	// used for texture transparency, but I don't really know how to use it
+	// it doesn't work
+	//SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-	/*SDL_Surface *surface_screen = SDL_CreateRGBSurface(0, WIDTH, HEIGHT, 32,
-                                        0x00FF0000,
-                                        0x0000FF00,
-                                        0x000000FF,
-                                        0xFF000000);*/
-
-	SDL_Surface *surface_map = SDL_CreateRGBSurface(0, 2000, 600, 32,
+	SDL_Surface *surface_map = SDL_CreateRGBSurface(0, MAP_WIDTH, MAP_HEIGHT, 32,
                                         0x00FF0000,
                                         0x0000FF00,
                                         0x000000FF,
@@ -274,51 +695,33 @@ int main( int argc, char* argv[] )
 
 	SDL_Surface *surface_textures = SDL_LoadBMP("images/blocks.bmp");
 
-	level_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 2000, 600);
-	//SDL_QueryTexture(img, NULL, NULL, &w, &h);	
-
-	camera.x = 0;
-	camera.y = 0;
-	camera.w = 800;
-	camera.h = 600;
-
-	player_rect.x = 300; player_rect.y = 170;
-	player_rect.h = 36; player_rect.w = 30;
-
-	player_texture = IMG_LoadTexture(renderer, "images/player.png");
+	level_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAP_WIDTH, MAP_HEIGHT);
+	// can be used to return dimensions of texture
+	//SDL_QueryTexture(img, NULL, NULL, &w, &h);
 
 	LoadLevel(surface_map, surface_textures);
 
-	// load our image
-	SDL_UpdateTexture(level_texture, NULL, surface_map->pixels, surface_map->pitch);
-
-	//debug_message = TTF_RenderText_Solid( debug_font, "What happens", debug_color );
-	//debug_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB555, SDL_TEXTUREACCESS_STREAMING, 93, 16);
-	debug_message = TTF_RenderText_Solid( debug_font, "What happens", debug_color );
-	//SDL_UpdateTexture(debug_texture, NULL, debug_message->pixels, debug_message->pitch);
-
-	debug_texture = SDL_CreateTextureFromSurface(renderer, debug_message);
+	player_texture = IMG_LoadTexture(renderer, "images/player.png");
+	player.set_pos(10,20);
 	
-	//SDL_UpdateTexture(debug_texture, NULL, debug_message->pixels, debug_message->pitch);
-
-	//debug_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 300, 100);
-	//SDL_QueryTexture(img, NULL, NULL, &w, &h);	
-
+	// start delta timer
+	// used to change velocity of objects according to time (not fps)
+	delta.start();
 	// main loop
 	while (!ENDGAME) {
 		
 		CallUpdate();
 		CallDraw();
-		SDL_Delay(16);
 	}
 	
+	// clean up
 	SDL_FreeSurface(surface_map);
 	SDL_FreeSurface(surface_textures);
-	//SDL_FreeSurface(debug_message);
+	SDL_FreeSurface(debug_message);
 
 	SDL_DestroyTexture(level_texture);
-	//SDL_DestroyTexture(player_texture);
-	//SDL_DestroyTexture(debug_texture);
+	SDL_DestroyTexture(player_texture);
+	SDL_DestroyTexture(debug_texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 
