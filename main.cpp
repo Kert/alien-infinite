@@ -34,8 +34,14 @@ SDL_Surface *debug_message = NULL;
 
 SDL_Rect camera = {0, 0, WIDTH, HEIGHT};
 	
-SDL_Event event;
 bool q1=false, q2=false, q3=false, q4=false;
+// array that stores key states (pressed or not)
+#define HOLD_RIGHT 0
+#define HOLD_LEFT 1
+#define HOLD_DOWN 2
+#define HOLD_UP 3
+
+bool holdkeys[4] = {false};
 
 void key_state_check(SDL_Event &e, SDL_Keycode key, bool &q)
 {
@@ -128,7 +134,7 @@ class Player
     Player();
 
     //Takes key presses and adjusts the player's velocity
-    void handle_input();
+	void handle_input(SDL_Event event);
 
     void update_pos( Uint32 deltaTicks );
 
@@ -201,71 +207,70 @@ void Player::get_pos_rect(int &x, int &y)
 }
 
 //bool released = true;
-void Player::handle_input()
+void Player::handle_input(SDL_Event event)
 {
-	key_state_check(event, SDLK_LEFT, q1);
-	key_state_check(event, SDLK_RIGHT, q2);
-	key_state_check(event, SDLK_z, q3);
-	key_state_check(event, SDLK_x, q4);
+	if (event.type == SDL_KEYDOWN)
+	{
+		switch( event.key.keysym.sym )
+        {
+			case SDLK_RIGHT:
+			{
+				holdkeys[HOLD_RIGHT] = true;
+				break;
+			}
+			case SDLK_LEFT:
+			{
+				holdkeys[HOLD_LEFT] = true;
+				break;
+			}
+			case SDLK_z:
+			{
+				if(yVel == 0)
+				{
+					yVel = -JUMP_FORCE;	
+				}	
+				break;
+			}
+			case SDLK_t: // teleport key
+			{
+				y = 32;
+				x = 32;
+				break;
+			}
+		}
+	}
 
-	if(q1)
+	if (event.type == SDL_KEYUP)
+	{
+		switch( event.key.keysym.sym )
+        {
+			case SDLK_RIGHT:
+			{
+				holdkeys[HOLD_RIGHT] = false;
+				break;
+			}
+			case SDLK_LEFT:
+			{
+				holdkeys[HOLD_LEFT] = false;
+				break;
+			}
+		}
+	}
+	
+	if(holdkeys[HOLD_LEFT])
 	{
 		direction = 0;
 		xVel = -player_vel;
 	}
 
-	if(q2)
+	if(holdkeys[HOLD_RIGHT])
 	{
 		direction = 1;
 		xVel = player_vel;
 	}
-
-	/*if( event.type == SDL_KEYDOWN )
-    {
-        switch( event.key.keysym.sym )
-        {
-            case SDLK_z:
-				if(released)
-				{
-					if(yVel == 0)
-					{
-						yVel = -JUMP_FORCE;
-						released = false;
-					}
-				}
-				break;
-		}
-	}
-
-	if( event.type == SDL_KEYUP )
-    {
-        switch( event.key.keysym.sym )
-        {
-            case SDLK_z:
-				
-						released = true;
-
-				break;
-		}
-	}*/
-
-	if(q3)
-	{
-		if(yVel == 0)
-		{
-			yVel = -JUMP_FORCE;	
-		}		
-	}
-
-	// teleport back
-	if(q4)
-	{
-		y = 32;
-		x = 32;
-	}
 	
 	// stop if keys aren't pressed anymore
-	else if(!q1 && !q2)
+	else if(!holdkeys[HOLD_RIGHT] && !holdkeys[HOLD_LEFT])
 	{
 		xVel = 0;
 	}
@@ -277,7 +282,6 @@ void Player::update_pos( Uint32 deltaTicks )
 
     //Move the player left or right
     x += xVel * ( deltaTicks / 1000.f );
-
 	tempx = x / 32;
 	tempy = y / 32;
 	tempx2 = (x+player_width) / 32;
@@ -287,7 +291,6 @@ void Player::update_pos( Uint32 deltaTicks )
 	if(tiles[tempx+1][tempy] == true || tiles[tempx+1][tempy2] == true)
 	{
 		x = tempx * 32;
-		xVel = 0;
 	}
 	
 	tempx = x / 32;
@@ -299,7 +302,6 @@ void Player::update_pos( Uint32 deltaTicks )
 	if(tiles[tempx][tempy] == true || tiles[tempx][tempy2] == true)
 	{
 		x = tempx2 * 32;
-		xVel = 0;
 	}
 
     //If the player went too far to the left
@@ -358,8 +360,11 @@ void Player::update_pos( Uint32 deltaTicks )
 	//check collision below
 	if(tiles[tempx][tempy+1] == true || tiles[tempx2][tempy+1] == true)
 	{
-		y = tempy * 32;
-		yVel = 0;
+		if(yVel > 0)
+		{
+			y = tempy * 32;
+			yVel = 0;
+		}
 	}
 }
 
@@ -535,26 +540,28 @@ void ShowSprite(SDL_Rect &onscreen, SDL_Texture *img, int x, int y, int h, int w
 
 void CallUpdate()
 {
-		while( SDL_PollEvent( &event ) )
+	SDL_Event e;
+	
+	while( SDL_PollEvent( &e ) )
+    {
+        //Handle events for the player
+		player.handle_input(e);
+
+        //If the user has Xed out the window
+        if( e.type == SDL_QUIT )
         {
-            //Handle events for the player
-            player.handle_input();
-
-            //If the user has Xed out the window
-            if( event.type == SDL_QUIT )
-            {
-                //Quit the program
-                ENDGAME = true;
-            }
+            //Quit the program
+            ENDGAME = true;
         }
+    }
 
-		 //Move the player
-        player.update_pos( delta.get_ticks() );
+		//Move the player
+    player.update_pos( delta.get_ticks() );
 
-		player.set_camera();
+	player.set_camera();
 
-        //Restart delta timer
-        delta.start();
+    //Restart delta timer
+    delta.start();
 }
 
 void ShowDebugInfo()
@@ -564,8 +571,8 @@ void ShowDebugInfo()
 	player.get_pos(x, y);
 	player.get_pos_rect(rectx, recty);
 	SDL_FreeSurface(debug_message);
-	sprintf_s(debug_str,"PlayerX = %d. PlayerY = %d PlayerRectX = %d PlayerRectY = %d VelX: %d VelY: %d Direction: %d",
-		x, y, rectx, recty, (int)player.get_xvelocity(), (int)player.get_yvelocity(), player.get_direction() );
+	sprintf_s(debug_str,"PlayerX = %d. PlayerY = %d PlayerRectX = %d PlayerRectY = %d VelX: %d VelY: %d Direction: %d HOLD_RIGHT: %d HOLD_LEFT: %d",
+		x, y, rectx, recty, (int)player.get_xvelocity(), (int)player.get_yvelocity(), player.get_direction() , holdkeys[HOLD_RIGHT], holdkeys[HOLD_LEFT]);
 	debug_message = TTF_RenderText_Solid( debug_font, debug_str, debug_color );
 	SDL_DestroyTexture(debug_texture);
 	debug_texture = SDL_CreateTextureFromSurface(renderer, debug_message);
