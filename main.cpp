@@ -11,6 +11,8 @@
 #define MAP_HEIGHT 2000
 
 #define GRAVITY 2800
+#define AIR_RESISTANCE 3000
+#define FRICTION 9999
 #define JUMP_FORCE 1000
 
 #define FRAMES_PER_SECOND 60
@@ -268,12 +270,6 @@ void Player::handle_input(SDL_Event event)
 		direction = 1;
 		xVel = player_vel;
 	}
-	
-	// stop if keys aren't pressed anymore
-	else if(!holdkeys[HOLD_RIGHT] && !holdkeys[HOLD_LEFT])
-	{
-		xVel = 0;
-	}
 }
 
 void Player::update_pos( Uint32 deltaTicks )
@@ -316,6 +312,24 @@ void Player::update_pos( Uint32 deltaTicks )
         //Move back
         x = MAP_WIDTH - player_width;
     }
+
+	if(!holdkeys[HOLD_RIGHT])
+	{
+		if(xVel > 0)
+		{
+			xVel -= AIR_RESISTANCE * ( deltaTicks / 1000.f );
+			if(xVel < 0) xVel = 0;
+		}
+	}
+
+	if(!holdkeys[HOLD_LEFT])
+	{
+		if(xVel < 0)
+		{
+			xVel += AIR_RESISTANCE * ( deltaTicks / 1000.f );
+			if(xVel > 0) xVel = 0;
+		}
+	}
 
 	
     //Move the player up or down
@@ -360,6 +374,24 @@ void Player::update_pos( Uint32 deltaTicks )
 	//check collision below
 	if(tiles[tempx][tempy+1] == true || tiles[tempx2][tempy+1] == true)
 	{
+		if(!holdkeys[HOLD_RIGHT])
+		{
+			if(xVel > 0)
+			{
+				xVel -= FRICTION * ( deltaTicks / 1000.f );
+				if(xVel < 0) xVel = 0;
+			}
+		}
+
+		if(!holdkeys[HOLD_LEFT])
+		{
+			if(xVel < 0)
+			{
+				xVel += FRICTION * ( deltaTicks / 1000.f );
+				if(xVel > 0) xVel = 0;
+			}
+		}
+
 		if(yVel > 0)
 		{
 			y = tempy * 32;
