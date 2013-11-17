@@ -103,8 +103,8 @@ Player player;
 Player::Player()
 {
 	player_vel = 380;
-	player_width = 30;
 	player_height = 26;
+	player_width = 30;
 
     //Initialize the offsets
     x = 0;
@@ -114,7 +114,7 @@ Player::Player()
     xVel = 0;
     yVel = 0;
 
-	rect.h = 36; rect.w = 30;
+	rect.h = player_height; rect.w = player_width;
 }
 
 float Player::get_xvelocity()
@@ -378,8 +378,8 @@ void Player::set_camera()
 void Player::show()
 {
 	SDL_Rect player_sprite_coords;
-	player_sprite_coords.h = 36;
-	player_sprite_coords.w = 30;
+	player_sprite_coords.h = 32;
+	player_sprite_coords.w = 24;
 	player_sprite_coords.x = 0;
 	player_sprite_coords.y = 0;
 
@@ -551,7 +551,7 @@ int main( int argc, char* argv[] )
 	
 	// used for texture transparency, but I don't really know how to use it
 	// it doesn't work
-	//SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	SDL_Surface *surface_map = SDL_CreateRGBSurface(0, MAP_WIDTH, MAP_HEIGHT, 32,
                                         0x00FF0000,
@@ -567,7 +567,10 @@ int main( int argc, char* argv[] )
 
 	LoadLevel(surface_map, surface_textures);
 
-	player_texture = IMG_LoadTexture(renderer, "images/player.png");
+	player_surface = IMG_Load("images/player.png");
+	SDL_SetColorKey(player_surface, 1, SDL_MapRGB(player_surface->format, 239, 239, 239));
+	player_texture = SDL_CreateTextureFromSurface(renderer, player_surface);
+
 	player.set_pos(10,20);
 	
 	// start delta timer
@@ -581,6 +584,7 @@ int main( int argc, char* argv[] )
 	}
 	
 	// clean up
+	SDL_FreeSurface(player_surface);
 	SDL_FreeSurface(surface_map);
 	SDL_FreeSurface(surface_textures);
 	SDL_FreeSurface(debug_message);

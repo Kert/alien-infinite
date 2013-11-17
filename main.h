@@ -16,6 +16,7 @@ bool ENDGAME=false;
 
 SDL_Texture *level_texture = NULL;
 SDL_Texture *player_texture = NULL;
+SDL_Surface *player_surface = NULL;
 
 SDL_Window *win = NULL;
 SDL_Renderer *renderer = NULL;
