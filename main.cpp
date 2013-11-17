@@ -2,60 +2,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <iostream>
-
-// window
-#define WIDTH 800
-#define HEIGHT 600
-
-#define MAP_WIDTH 2000
-#define MAP_HEIGHT 2000
-
-#define GRAVITY 2800
-#define AIR_RESISTANCE 3000
-#define FRICTION 9999
-#define JUMP_FORCE 1000
-
-#define FRAMES_PER_SECOND 60
-
-// blocks data (air or solid)
-bool tiles[1000][1000];
-
-// ends gameloop
-bool ENDGAME=false;
-
-SDL_Texture *level_texture = NULL;
-SDL_Texture *player_texture = NULL;
-
-SDL_Window *win = NULL;
-SDL_Renderer *renderer = NULL;
-
-SDL_Texture *debug_texture = NULL;
-TTF_Font *debug_font = NULL;
-SDL_Color debug_color = { 255, 255, 255 };
-SDL_Surface *debug_message = NULL;
-
-SDL_Rect camera = {0, 0, WIDTH, HEIGHT};
-	
-bool q1=false, q2=false, q3=false, q4=false;
-// array that stores key states (pressed or not)
-#define HOLD_RIGHT 0
-#define HOLD_LEFT 1
-#define HOLD_DOWN 2
-#define HOLD_UP 3
-
-bool holdkeys[4] = {false};
-
-void key_state_check(SDL_Event &e, SDL_Keycode key, bool &q)
-{
-	if (e.type == SDL_KEYUP && e.key.keysym.sym == key)
-	{
-		q=false;
-	}
-	else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == key)
-	{
-		q=true;
-	}
-}
+#include "main.h"
 
 /*
 //The attributes of the screen
@@ -213,31 +160,34 @@ void Player::handle_input(SDL_Event event)
 {
 	if (event.type == SDL_KEYDOWN)
 	{
-		switch( event.key.keysym.sym )
-        {
-			case SDLK_RIGHT:
+		if(!event.key.repeat)
+		{
+			switch( event.key.keysym.sym )
 			{
-				holdkeys[HOLD_RIGHT] = true;
-				break;
-			}
-			case SDLK_LEFT:
-			{
-				holdkeys[HOLD_LEFT] = true;
-				break;
-			}
-			case SDLK_z:
-			{
-				if(yVel == 0)
+				case SDLK_RIGHT:
 				{
-					yVel = -JUMP_FORCE;	
-				}	
-				break;
-			}
-			case SDLK_t: // teleport key
-			{
-				y = 32;
-				x = 32;
-				break;
+					holdkeys[HOLD_RIGHT] = true;
+					break;
+				}
+				case SDLK_LEFT:
+				{
+					holdkeys[HOLD_LEFT] = true;
+					break;
+				}
+				case SDLK_z:
+				{
+					if(yVel == 0)
+					{
+						yVel = -JUMP_FORCE;	
+					}	
+					break;
+				}
+				case SDLK_t: // teleport key
+				{
+					y = 32;
+					x = 32;
+					break;
+				}
 			}
 		}
 	}
@@ -436,129 +386,6 @@ void Player::show()
 	rect.x = (int)x - camera.x;
 	rect.y = (int)y - camera.y;
 	SDL_RenderCopy(renderer, player_texture, &player_sprite_coords, &rect);
-}
-
-class Timer
-{
-    private:
-    //The clock time when the timer started
-    int startTicks;
-
-    //The ticks stored when the timer was paused
-    int pausedTicks;
-
-    //The timer status
-    bool paused;
-    bool started;
-
-    public:
-    //Initializes variables
-    Timer();
-
-    //The various clock actions
-    void start();
-    void stop();
-    void pause();
-    void unpause();
-
-    //Gets the timer's time
-    int get_ticks();
-
-    //Checks the status of the timer
-    bool is_started();
-    bool is_paused();
-}; 
-
-Timer delta;
-Timer::Timer()
-{
-    //Initialize the variables
-    startTicks = 0;
-    pausedTicks = 0;
-    paused = false;
-    started = false;
-}
-
-void Timer::start()
-{
-    //Start the timer
-    started = true;
-
-    //Unpause the timer
-    paused = false;
-
-    //Get the current clock time
-    startTicks = SDL_GetTicks();
-}
-
-void Timer::stop()
-{
-    //Stop the timer
-    started = false;
-
-    //Unpause the timer
-    paused = false;
-}
-
-void Timer::pause()
-{
-    //If the timer is running and isn't already paused
-    if( ( started == true ) && ( paused == false ) )
-    {
-        //Pause the timer
-        paused = true;
-
-        //Calculate the paused ticks
-        pausedTicks = SDL_GetTicks() - startTicks;
-    }
-}
-
-void Timer::unpause()
-{
-    //If the timer is paused
-    if( paused == true )
-    {
-        //Unpause the timer
-        paused = false;
-
-        //Reset the starting ticks
-        startTicks = SDL_GetTicks() - pausedTicks;
-
-        //Reset the paused ticks
-        pausedTicks = 0;
-    }
-}
-
-int Timer::get_ticks()
-{
-    //If the timer is running
-    if( started == true )
-    {
-        //If the timer is paused
-        if( paused == true )
-        {
-            //Return the number of ticks when the timer was paused
-            return pausedTicks;
-        }
-        else
-        {
-            //Return the current time minus the start time
-            return SDL_GetTicks() - startTicks;
-        }
-    }
-
-    //If the timer isn't running
-    return 0;
-}
-
-bool Timer::is_started()
-{
-    return started;
-}
-
-bool Timer::is_paused()
-{
-    return paused;
 }
 
 /*
