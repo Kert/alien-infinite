@@ -2,6 +2,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <iostream>
+#include <math.h>
 #include "main.h"
 
 /*
@@ -73,6 +74,7 @@ class Player
     float x, y;
 	float xVel, yVel;
 	bool direction;
+	bool onground;
 	int player_vel;
 	int player_width;
 	int player_height;
@@ -92,7 +94,7 @@ class Player
 	bool get_direction();
 	void set_direction(bool direction);
 	void get_pos(int &x, int &y);
-	void set_pos(int x, int y);
+	void set_pos(float x, float y);
 	void get_pos_rect(int &x, int &y);
 	void set_camera();
 
@@ -103,8 +105,10 @@ Player player;
 Player::Player()
 {
 	player_vel = 380;
-	player_height = 26;
-	player_width = 30;
+	//player_height = 26;
+	//player_width = 30;
+	player_height = 32*2;
+	player_width = 24*2;
 
     //Initialize the offsets
     x = 0;
@@ -115,6 +119,8 @@ Player::Player()
     yVel = 0;
 
 	rect.h = player_height; rect.w = player_width;
+
+	onground = false;
 }
 
 float Player::get_xvelocity()
@@ -143,7 +149,7 @@ void Player::get_pos(int &x, int &y)
 	y = (int)this->y;
 }
 
-void Player::set_pos(int x, int y)
+void Player::set_pos(float x, float y)
 {
 	this->x = x;
 	this->y = y;
@@ -176,7 +182,7 @@ void Player::handle_input(SDL_Event event)
 				}
 				case SDLK_z:
 				{
-					if(yVel == 0)
+					if(onground)
 					{
 						yVel = -JUMP_FORCE;	
 					}	
@@ -225,110 +231,15 @@ void Player::handle_input(SDL_Event event)
 void Player::update_pos( Uint32 deltaTicks )
 {
 	int tempx, tempy, tempx2, tempy2;
+	float tx, ty;
 
-    //Move the player left or right
-    x += xVel * ( deltaTicks / 1000.f );
-	tempx = x / 32;
-	tempy = y / 32;
-	tempx2 = (x+player_width) / 32;
-	tempy2 = (y+player_height) / 32;
-
-	//check collision right
-	if(tiles[tempx+1][tempy] == true || tiles[tempx+1][tempy2] == true)
-	{
-		x = tempx * 32;
-	}
-	
-	tempx = x / 32;
-	tempy = y / 32;
-	tempx2 = (x+player_width) / 32;
-	tempy2 = (y+player_height) / 32;
-
-	//check collision left
-	if(tiles[tempx][tempy] == true || tiles[tempx][tempy2] == true)
-	{
-		x = tempx2 * 32;
-	}
-
-    //If the player went too far to the left
-    if( x < 0 )
-    {
-        //Move back
-        x = 0;
-    }
-    //or the right
-    else if( x + player_width > MAP_WIDTH )
-    {
-        //Move back
-        x = MAP_WIDTH - player_width;
-    }
-
-	if(!holdkeys[HOLD_RIGHT])
-	{
-		if(xVel > 0)
-		{
-			xVel -= AIR_RESISTANCE * ( deltaTicks / 1000.f );
-			if(xVel < 0) xVel = 0;
-		}
-	}
-
-	if(!holdkeys[HOLD_LEFT])
-	{
-		if(xVel < 0)
-		{
-			xVel += AIR_RESISTANCE * ( deltaTicks / 1000.f );
-			if(xVel > 0) xVel = 0;
-		}
-	}
-
-	
-    //Move the player up or down
-    y += yVel * ( deltaTicks / 1000.f );
-	yVel += GRAVITY * ( deltaTicks / 1000.f );
-	
-	if(yVel > GRAVITY)
-	{
-		yVel = GRAVITY;
-	}
-
-    //If the player went too far up
-    if( y < 0 )
-    {
-        //Move back
-        y = 0;
-    }
-    //or down
-    else if( y + player_height > MAP_HEIGHT )
-    {
-        //Move back
-        y = MAP_HEIGHT - player_height;
-    }
-		
-	tempx = x / 32;
-	tempx2 = (x+player_width) / 32;
-	tempy = y / 32;	
-	tempy2 = (y+player_height) / 32;
-
-	//check collision above
-	if(tiles[tempx][tempy] == true || tiles[tempx2][tempy] == true)
-	{
-		y = (tempy+1) * 32;
-		yVel = 0;
-	}
-
-	tempx = x / 32;
-	tempx2 = (x+player_width) / 32;
-	tempy = y / 32;	
-	tempy2 = (y+player_height) / 32;
-
-	//check collision below
-	if(tiles[tempx][tempy+1] == true || tiles[tempx2][tempy+1] == true)
+	if(!onground)
 	{
 		if(!holdkeys[HOLD_RIGHT])
 		{
 			if(xVel > 0)
 			{
-				xVel -= FRICTION * ( deltaTicks / 1000.f );
+				xVel -= AIR_RESISTANCE * ( deltaTicks / PHYSICS_SPEED );
 				if(xVel < 0) xVel = 0;
 			}
 		}
@@ -337,17 +248,127 @@ void Player::update_pos( Uint32 deltaTicks )
 		{
 			if(xVel < 0)
 			{
-				xVel += FRICTION * ( deltaTicks / 1000.f );
+				xVel += AIR_RESISTANCE * ( deltaTicks / PHYSICS_SPEED );
 				if(xVel > 0) xVel = 0;
 			}
 		}
-
-		if(yVel > 0)
+	}
+	else
+	{
+		if(!holdkeys[HOLD_RIGHT])
 		{
-			y = tempy * 32;
+			if(xVel > 0)
+			{
+				xVel -= FRICTION * ( deltaTicks / PHYSICS_SPEED );
+				if(xVel < 0) xVel = 0;
+			}
+		}
+
+		if(!holdkeys[HOLD_LEFT])
+		{
+			if(xVel < 0)
+			{
+				xVel += FRICTION * ( deltaTicks / PHYSICS_SPEED );
+				if(xVel > 0) xVel = 0;
+			}
+		}
+	}
+
+
+	//Move the player up or down
+	ty = y;
+	
+	// Add some gravity
+	yVel += GRAVITY * ( deltaTicks / PHYSICS_SPEED );
+	if(yVel > GRAVITY)
+	{
+		yVel = GRAVITY;
+	}
+	
+    y += yVel * ( deltaTicks / PHYSICS_SPEED );
+	
+    //If the player went too far up
+    if( y < 0 )
+    {
+        //Move back
+        y = 0;
+    }
+
+    //or down
+    else if( y + player_height > MAP_HEIGHT )
+    {
+        //Move back
+        y = MAP_HEIGHT - player_height;
+    }
+		
+	tempx = ceilf(x / 32)-0.5;
+	tempy = ceilf(y / 32)-0.5;
+	tempx2 = ceilf((x+player_width) / 32)-0.5;
+	tempy2 = ceilf((y+player_height) / 32)-0.5;
+
+	for(int i = tempx; i <= tempx2; i++)
+	{
+		if(tiles[i][tempy] == true)
+		{
+			y = ty;
 			yVel = 0;
 		}
 	}
+	
+	onground = false;
+	for(int i = tempx; i <= tempx2; i++)
+	{
+		if(tiles[i][tempy2] == true)
+		{
+			if(yVel > 0)
+			{
+				y = ty;
+				//y = tempy * 32;
+				//y = tempy2 * 32 - player_height;
+				yVel = 0;
+				onground = true;
+			}
+		}
+	}
+
+
+    //Move the player left or right
+	tx = x;
+    x += xVel * ( deltaTicks / PHYSICS_SPEED );
+	
+	//If the player went too far to the left
+    if( x < 0 )
+    {
+        //Move back
+        x = 0;
+    }
+
+    //or the right
+    else if( x + player_width > MAP_WIDTH )
+    {
+        //Move back
+        x = MAP_WIDTH - player_width;
+    }
+
+	tempx = ceilf(x / 32)-0.5;
+	tempy = ceilf(y / 32)-0.5;
+	tempx2 = ceilf((x+player_width) / 32)-0.5;
+	tempy2 = ceilf((y+player_height) / 32)-0.5;
+
+	for(int j = tempy; j <= tempy2; j++)
+	{
+		if(tiles[tempx][j] == true)
+		{
+			x = tx;
+			break;
+		}
+		if(tiles[tempx2][j] == true)
+		{
+			x = tx;
+			break;
+		}
+	}
+
 }
 
 void Player::set_camera()
@@ -450,6 +471,7 @@ void CallDraw()
 	// show level map
 	SDL_RenderCopy(renderer, level_texture, &camera, NULL);
 
+	
 	// show player sprite
 	player.show();
 
@@ -568,6 +590,7 @@ int main( int argc, char* argv[] )
 	LoadLevel(surface_map, surface_textures);
 
 	player_surface = IMG_Load("images/player.png");
+	
 	SDL_SetColorKey(player_surface, 1, SDL_MapRGB(player_surface->format, 239, 239, 239));
 	player_texture = SDL_CreateTextureFromSurface(renderer, player_surface);
 

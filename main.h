@@ -28,6 +28,7 @@ SDL_Surface *debug_message = NULL;
 
 SDL_Rect camera = {0, 0, WIDTH, HEIGHT};
 
+#define PHYSICS_SPEED 1000.f
 #define GRAVITY 2800
 #define AIR_RESISTANCE 3000
 #define FRICTION 9999
