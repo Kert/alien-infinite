@@ -1,8 +1,7 @@
-#include <SDL.h>
-
 #ifndef _utils_h_
 #define _utils_h_ 
-#endif
+
+#include <SDL.h>
 
 class Timer
 {
@@ -125,3 +124,5 @@ bool Timer::is_paused()
 {
     return paused;
 }
+
+#endif
