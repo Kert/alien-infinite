@@ -13,6 +13,9 @@ SDL_Renderer *renderer = NULL;
 SDL_Texture *player_texture = NULL;
 SDL_Texture *level_texture = NULL;
 SDL_Surface *player_surface = NULL;
+SDL_Surface *surface_map = NULL;
+SDL_Surface *surface_textures = NULL;
+
 
 SDL_Window *win = NULL;
 
@@ -21,6 +24,49 @@ TTF_Font *debug_font = NULL;
 SDL_Color debug_color = { 255, 255, 255 };
 SDL_Surface *debug_message = NULL;
 
+void GraphicsSetup()
+{
+	debug_font = TTF_OpenFont( "verdana.ttf", 12 );
+	
+	// create the window and renderer
+	// note that the renderer is accelerated
+	win = SDL_CreateWindow("Image Loading", 100, 100, WIDTH, HEIGHT, 0);
+	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+	
+	// used for texture transparency, but I don't really know how to use it
+	// it doesn't work
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+	surface_map = SDL_CreateRGBSurface(0, MAP_WIDTH, MAP_HEIGHT, 32,
+                                        0x00FF0000,
+                                        0x0000FF00,
+                                        0x000000FF,
+                                        0xFF000000);
+
+	surface_textures = SDL_LoadBMP("images/blocks.bmp");
+
+	level_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAP_WIDTH, MAP_HEIGHT);
+	// can be used to return dimensions of texture
+	//SDL_QueryTexture(img, NULL, NULL, &w, &h);
+
+	player_surface = IMG_Load("images/player.png");
+	SDL_SetColorKey(player_surface, 1, SDL_MapRGB(player_surface->format, 239, 239, 239));
+	player_texture = SDL_CreateTextureFromSurface(renderer, player_surface);
+}
+
+void GraphicsCleanup()
+{
+	SDL_FreeSurface(player_surface);
+	SDL_FreeSurface(surface_map);
+	SDL_FreeSurface(surface_textures);
+	SDL_FreeSurface(debug_message);
+
+	SDL_DestroyTexture(level_texture);
+	SDL_DestroyTexture(player_texture);
+	SDL_DestroyTexture(debug_texture);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(win);
+}
 
 void Render(DynamicEntity &p)
 {
@@ -32,7 +78,6 @@ void Render(DynamicEntity &p)
 
 	p.rect.x = (int)p.x - camera.x;
 	p.rect.y = (int)p.y - camera.y;
-	//SDL_RenderCopy(renderer, player_texture, &player_sprite_coords, &p.rect);
 	if(!p.direction) SDL_RenderCopyEx(renderer, player_texture, &player_sprite_coords, &p.rect, NULL, NULL, SDL_FLIP_HORIZONTAL);
 	else SDL_RenderCopyEx(renderer, player_texture, &player_sprite_coords, &p.rect, NULL, NULL, SDL_FLIP_NONE);
 }

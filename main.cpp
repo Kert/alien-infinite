@@ -180,40 +180,17 @@ int main( int argc, char* argv[] )
         return false;    
     }
 	
-	debug_font = TTF_OpenFont( "verdana.ttf", 12 );
-	
-	// create the window and renderer
-	// note that the renderer is accelerated
-	win = SDL_CreateWindow("Image Loading", 100, 100, WIDTH, HEIGHT, 0);
-	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-	
-	// used for texture transparency, but I don't really know how to use it
-	// it doesn't work
-	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-	SDL_Surface *surface_map = SDL_CreateRGBSurface(0, MAP_WIDTH, MAP_HEIGHT, 32,
-                                        0x00FF0000,
-                                        0x0000FF00,
-                                        0x000000FF,
-                                        0xFF000000);
-
-	SDL_Surface *surface_textures = SDL_LoadBMP("images/blocks.bmp");
-
-	level_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAP_WIDTH, MAP_HEIGHT);
-	// can be used to return dimensions of texture
-	//SDL_QueryTexture(img, NULL, NULL, &w, &h);
+	GraphicsSetup();
 
 	LoadLevel(surface_map, surface_textures);
 
-	player_surface = IMG_Load("images/player.png");
-	SDL_SetColorKey(player_surface, 1, SDL_MapRGB(player_surface->format, 239, 239, 239));
-	player_texture = SDL_CreateTextureFromSurface(renderer, player_surface);
-
 	player.set_pos(10,20);
 	player.set_direction(true);
+
 	// start delta timer
 	// used to change velocity of objects according to time (not fps)
 	delta.start();
+
 	// main loop
 	while (!ENDGAME) {
 		
@@ -222,19 +199,13 @@ int main( int argc, char* argv[] )
 	}
 	
 	// clean up
-	SDL_FreeSurface(player_surface);
-	SDL_FreeSurface(surface_map);
-	SDL_FreeSurface(surface_textures);
-	SDL_FreeSurface(debug_message);
+	GraphicsCleanup();
 
-	SDL_DestroyTexture(level_texture);
-	SDL_DestroyTexture(player_texture);
-	SDL_DestroyTexture(debug_texture);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(win);
-
+	// close SDL_ttf
 	TTF_CloseFont(debug_font);
     TTF_Quit();
+
+	// close SDL
 	SDL_Quit();
 
   return 0;
