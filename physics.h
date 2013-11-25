@@ -5,12 +5,13 @@
 #include <math.h>
 #include "entities.h"
 #include "level.h"
+#include "utils.h"
 
 #define PHYSICS_SPEED 1000.f
-#define GRAVITY 2800
+#define GRAVITY 2500
 #define AIR_RESISTANCE 3000
 #define FRICTION 9999
-#define JUMP_FORCE 1000
+#define JUMP_FORCE 500
 
 void ApplyPhysics(DynamicEntity &p, Uint32 deltaTicks )
 {
@@ -19,6 +20,9 @@ void ApplyPhysics(DynamicEntity &p, Uint32 deltaTicks )
 
 	if(!p.onground)
 	{
+
+#ifdef AIR_RESISTANCE_ENABLED
+
 		if(p.xVel > 0)
 		{
 			p.xVel -= AIR_RESISTANCE * ( deltaTicks / PHYSICS_SPEED );
@@ -29,6 +33,8 @@ void ApplyPhysics(DynamicEntity &p, Uint32 deltaTicks )
 			p.xVel += AIR_RESISTANCE * ( deltaTicks / PHYSICS_SPEED );
 			if(p.xVel > 0) p.xVel = 0;
 		}
+#endif
+
 	}
 	else
 	{
@@ -47,6 +53,8 @@ void ApplyPhysics(DynamicEntity &p, Uint32 deltaTicks )
 	//Move the player up or down
 	ty = p.y;
 	
+	if(p.jumping) p.yVel -= p.accel * deltaTicks;
+
 	// Add some gravity
 	p.yVel += GRAVITY * ( deltaTicks / PHYSICS_SPEED );
 	if(p.yVel > GRAVITY)

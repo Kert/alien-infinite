@@ -17,13 +17,16 @@ class DynamicEntity : public Entity
 	public:
 		float xVel, yVel;
 		bool direction;
-		int move_vel;
 		bool onground;
+		int in_air_vel;
+		int jumptime;
+		float accel;
+		bool jumping;
+		int move_vel;
 };
 
 class Player : public DynamicEntity
 {
-
     public:
     //Initializes the variables
     Player();
@@ -40,6 +43,10 @@ class Player : public DynamicEntity
 Player::Player()
 {
 	move_vel = 380;
+	in_air_vel = 220;
+	jumptime = 0;
+	accel = 5;
+	jumping = false;
 	//player_height = 26;
 	//player_width = 30;
 	height = 32*2;

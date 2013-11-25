@@ -15,23 +15,12 @@ bool ENDGAME=false;
 #define HOLD_LEFT 1
 #define HOLD_DOWN 2
 #define HOLD_UP 3
+#define HOLD_JUMP 4
 
-bool holdkeys[4] = {false};
+bool holdkeys[5] = {false};
 
-void ProcessInput(DynamicEntity &p)
+void ProcessInput(Player &p)
 {
-	if(holdkeys[HOLD_LEFT])
-	{
-		p.direction = 0;
-		p.xVel = -p.move_vel;
-	}
-
-	if(holdkeys[HOLD_RIGHT])
-	{
-		p.direction = 1;
-		p.xVel = p.move_vel;
-	}
-
 	SDL_Event event;
 	while( SDL_PollEvent( &event ) )
     {
@@ -56,7 +45,11 @@ void ProcessInput(DynamicEntity &p)
 					{
 						if(p.onground)
 						{
-							p.yVel = -JUMP_FORCE;	
+							holdkeys[HOLD_JUMP] = true;
+							p.jumping = true;
+							if(p.xVel > 0) p.xVel = p.in_air_vel;
+							else if(p.xVel < 0) p.xVel = -p.in_air_vel;
+							p.jumptime = SDL_GetTicks();
 						}	
 						break;
 					}
@@ -84,6 +77,12 @@ void ProcessInput(DynamicEntity &p)
 					holdkeys[HOLD_LEFT] = false;
 					break;
 				}
+				case SDLK_z:
+				{	
+					holdkeys[HOLD_JUMP] = false;
+					p.jumping = false;
+					break;
+				}
 			}
 		}
 			
@@ -94,6 +93,28 @@ void ProcessInput(DynamicEntity &p)
             ENDGAME = true;
         }
     }
+
+	if(holdkeys[HOLD_LEFT])
+	{
+		p.direction = 0;
+		if(p.onground) p.xVel = -p.move_vel;
+		else p.xVel = -p.in_air_vel;
+	}
+
+	if(holdkeys[HOLD_RIGHT])
+	{
+		p.direction = 1;
+		if(p.onground) p.xVel = p.move_vel;
+		else p.xVel = p.in_air_vel;
+	}
+
+	if(holdkeys[HOLD_JUMP])
+	{
+		if(!p.onground)
+		{
+			if(SDL_GetTicks() - p.jumptime > 200) p.jumping = false;
+		}
+	}
 }
 
 #endif

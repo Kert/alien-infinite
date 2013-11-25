@@ -8,6 +8,9 @@
 #include "camera.h"
 #include "input.h"
 #include "level.h"
+#include "animation.h"
+
+Animation anim_player;
 
 SDL_Renderer *renderer = NULL;
 SDL_Texture *player_texture = NULL;
@@ -73,9 +76,25 @@ void Render(DynamicEntity &p)
 	SDL_Rect player_sprite_coords;
 	player_sprite_coords.h = 32;
 	player_sprite_coords.w = 24;
-	player_sprite_coords.x = 0;
-	player_sprite_coords.y = 0;
 
+	anim_player.Animate();
+
+	if(p.xVel == 0)
+	{
+		player_sprite_coords.x = 24;
+		player_sprite_coords.y = 0;
+		anim_player.SetCurrentFrame(0);
+	}
+	else
+	{
+		player_sprite_coords.x = (2+anim_player.GetCurrentFrame()) * 24;
+		player_sprite_coords.y = 0;
+	}
+	if(!p.onground)
+	{
+		if(p.yVel < 0) player_sprite_coords.x = (7 * 24);
+		else player_sprite_coords.x = (8 * 24);
+	}
 	p.rect.x = (int)p.x - camera.x;
 	p.rect.y = (int)p.y - camera.y;
 	if(!p.direction) SDL_RenderCopyEx(renderer, player_texture, &player_sprite_coords, &p.rect, NULL, NULL, SDL_FLIP_HORIZONTAL);
@@ -90,8 +109,8 @@ void ShowDebugInfo()
 	player.get_pos(x, y);
 	player.get_pos_rect(rectx, recty);
 	SDL_FreeSurface(debug_message);
-	sprintf_s(debug_str,"PlayerX = %d. PlayerY = %d PlayerRectX = %d PlayerRectY = %d VelX: %d VelY: %d Direction: %d HOLD_RIGHT: %d HOLD_LEFT: %d",
-		x, y, rectx, recty, (int)player.get_xvelocity(), (int)player.get_yvelocity(), player.get_direction() , holdkeys[HOLD_RIGHT], holdkeys[HOLD_LEFT]);
+	sprintf_s(debug_str,"PlayerX = %d. PlayerY = %d VelX: %d VelY: %d Direction: %d Onground: %d HOLD_RIGHT: %d HOLD_LEFT: %d",
+		x, y, (int)player.get_xvelocity(), (int)player.get_yvelocity(), player.get_direction() , player.onground, holdkeys[HOLD_RIGHT], holdkeys[HOLD_LEFT]);
 	debug_message = TTF_RenderText_Solid( debug_font, debug_str, debug_color );
 	SDL_DestroyTexture(debug_texture);
 	debug_texture = SDL_CreateTextureFromSurface(renderer, debug_message);

@@ -8,6 +8,7 @@
 #include "physics.h"
 #include "input.h"
 #include "camera.h"
+#include "animation.h"
 #include "graphics.h"
 
 #endif

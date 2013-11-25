@@ -184,13 +184,15 @@ int main( int argc, char* argv[] )
 
 	LoadLevel(surface_map, surface_textures);
 
-	player.set_pos(10,20);
+	player.set_pos(50,50);
 	player.set_direction(true);
+
+	anim_player.SetFrameRate(125);
+	anim_player.MaxFrames = 4;
 
 	// start delta timer
 	// used to change velocity of objects according to time (not fps)
 	delta.start();
-
 	// main loop
 	while (!ENDGAME) {
 		
