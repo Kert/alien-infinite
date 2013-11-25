@@ -2,7 +2,6 @@
 #define _utils_h_ 
 
 #include <SDL.h>
-#include <math.h> 
 
 class Timer
 {
