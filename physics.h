@@ -78,10 +78,10 @@ void ApplyPhysics(DynamicEntity &p, Uint32 deltaTicks )
         p.y = MAP_HEIGHT - p.height;
     }
 		
-	tempx = ceilf(p.x / 32)-0.5;
-	tempy = ceilf(p.y / 32)-0.5;
-	tempx2 = ceilf((p.x+p.width) / 32)-0.5;
-	tempy2 = ceilf((p.y+p.height) / 32)-0.5;
+	tempx = ceilf(p.x / TILESIZE)-0.5;
+	tempy = ceilf(p.y / TILESIZE)-0.5;
+	tempx2 = ceilf((p.x+p.width) / TILESIZE)-0.5;
+	tempy2 = ceilf((p.y+p.height) / TILESIZE)-0.5;
 
 	for(int i = tempx; i <= tempx2; i++)
 	{
@@ -127,10 +127,10 @@ void ApplyPhysics(DynamicEntity &p, Uint32 deltaTicks )
         p.x = MAP_WIDTH - p.width;
     }
 
-	tempx = ceilf(p.x / 32)-0.5;
-	tempy = ceilf(p.y / 32)-0.5;
-	tempx2 = ceilf((p.x+p.width) / 32)-0.5;
-	tempy2 = ceilf((p.y+p.height) / 32)-0.5;
+	tempx = ceilf(p.x / TILESIZE)-0.5;
+	tempy = ceilf(p.y / TILESIZE)-0.5;
+	tempx2 = ceilf((p.x+p.width) / TILESIZE)-0.5;
+	tempy2 = ceilf((p.y+p.height) / TILESIZE)-0.5;
 
 	for(int j = tempy; j <= tempy2; j++)
 	{

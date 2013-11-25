@@ -109,14 +109,14 @@ void LoadLevel(SDL_Surface * surf_map, SDL_Surface * surf_textures)
 	// Load background tiles
 
 	// tile coords in texture
-	rect.x=99; rect.y=64; rect.w=32; rect.h=32;
+	rect.x=99; rect.y=64; rect.w=TILESIZE; rect.h=TILESIZE;
 	
-	for(int i = 0; i <= (MAP_HEIGHT / 32); i++)
+	for(int i = 0; i <= (MAP_HEIGHT / TILESIZE); i++)
 	{
-		for(int j = 0; j < (MAP_WIDTH / 32); j++)
+		for(int j = 0; j < (MAP_WIDTH / TILESIZE); j++)
 		{
-			rect2.x = i * 32;
-			rect2.y = j * 32;
+			rect2.x = i * TILESIZE;
+			rect2.y = j * TILESIZE;
 			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 		}
 	}
@@ -124,14 +124,14 @@ void LoadLevel(SDL_Surface * surf_map, SDL_Surface * surf_textures)
 	// Load solid tiles
 
 	// tile coords in texture
-	rect.x=33; rect.y=0; rect.w=32; rect.h=32;
+	rect.x=33; rect.y=0; rect.w=TILESIZE; rect.h=TILESIZE;
 
-	for(int i = 0; i <= (MAP_WIDTH / 32); i++)
+	for(int i = 0; i <= (MAP_WIDTH / TILESIZE); i++)
 	{
 		for(int j = 13; j < 14; j++)
 		{
-			rect2.x = i * 32;
-			rect2.y = j * 32;
+			rect2.x = i * TILESIZE;
+			rect2.y = j * TILESIZE;
 			tiles[i][j] = true;
 			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 		}
@@ -141,26 +141,26 @@ void LoadLevel(SDL_Surface * surf_map, SDL_Surface * surf_textures)
 	{
 		for(int j = 4; j < 12; j++)
 		{
-			rect2.x = i * 32;
-			rect2.y = j * 32;
+			rect2.x = i * TILESIZE;
+			rect2.y = j * TILESIZE;
 			tiles[i][j] = true;
 			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 		}
 	}
 
 	// some other solid blocks
-	rect2.x = 10 * 32;
-	rect2.y = 10 * 32;
+	rect2.x = 10 * TILESIZE;
+	rect2.y = 10 * TILESIZE;
 	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 	tiles[10][10] = true;
 
-	rect2.x = 11 * 32;
-	rect2.y = 9 * 32;
+	rect2.x = 11 * TILESIZE;
+	rect2.y = 9 * TILESIZE;
 	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 	tiles[11][9] = true;
 
-	rect2.x = 8 * 32;
-	rect2.y = 8 * 32;
+	rect2.x = 8 * TILESIZE;
+	rect2.y = 8 * TILESIZE;
 	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
 	tiles[8][8] = true;
 

@@ -8,6 +8,8 @@
 #define MAP_WIDTH 2000
 #define MAP_HEIGHT 2000
 
+#define TILESIZE 32
+
 // blocks data (air or solid)
 bool tiles[1000][1000];
 
