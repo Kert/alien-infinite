@@ -10,7 +10,4 @@
 
 #define TILESIZE 32
 
-// blocks data (air or solid)
-bool tiles[1000][1000];
-
 #endif

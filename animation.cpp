@@ -1,5 +1,7 @@
 #include "animation.h"
 
+Animation anim_player;
+
 Animation::Animation()
 {
     CurrentFrame    = 0;

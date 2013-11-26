@@ -1,9 +1,8 @@
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <iostream>
-#include <math.h>
 #include "main.h"
+
+bool ENDGAME=false;
+Timer delta;
+extern Player player;
 
 /*
 //The attributes of the screen
@@ -68,6 +67,7 @@ bool Tile::is_solid()
 }
 */
 
+
 void CallUpdate()
 {
 	ProcessInput(player);
@@ -82,90 +82,7 @@ void CallUpdate()
 
 void CallDraw()
 {
-	// clear the screen
-	SDL_RenderClear(renderer);
-
-	// show level map
-	SDL_RenderCopy(renderer, level_texture, &camera, NULL);
-		
-	// show player sprite
-	Render(player);
-
-	ShowDebugInfo();
-	
-	// flip the backbuffer
-	// this means that everything that we prepared behind the screens is actually shown
-	SDL_RenderPresent(renderer);
-}
-
-void LoadLevel(SDL_Surface * surf_map, SDL_Surface * surf_textures)
-{
-	SDL_Rect rect;
-	SDL_Rect rect2;
-
-	//tile size on level map surface
-	rect2.w=32; rect2.h=32;
-
-	// Load background tiles
-
-	// tile coords in texture
-	rect.x=99; rect.y=64; rect.w=TILESIZE; rect.h=TILESIZE;
-	
-	for(int i = 0; i <= (MAP_HEIGHT / TILESIZE); i++)
-	{
-		for(int j = 0; j < (MAP_WIDTH / TILESIZE); j++)
-		{
-			rect2.x = i * TILESIZE;
-			rect2.y = j * TILESIZE;
-			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
-		}
-	}
-
-	// Load solid tiles
-
-	// tile coords in texture
-	rect.x=33; rect.y=0; rect.w=TILESIZE; rect.h=TILESIZE;
-
-	for(int i = 0; i <= (MAP_WIDTH / TILESIZE); i++)
-	{
-		for(int j = 13; j < 14; j++)
-		{
-			rect2.x = i * TILESIZE;
-			rect2.y = j * TILESIZE;
-			tiles[i][j] = true;
-			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
-		}
-	}
-
-	for(int i = 12; i <= 12; i++)
-	{
-		for(int j = 4; j < 12; j++)
-		{
-			rect2.x = i * TILESIZE;
-			rect2.y = j * TILESIZE;
-			tiles[i][j] = true;
-			SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
-		}
-	}
-
-	// some other solid blocks
-	rect2.x = 10 * TILESIZE;
-	rect2.y = 10 * TILESIZE;
-	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
-	tiles[10][10] = true;
-
-	rect2.x = 11 * TILESIZE;
-	rect2.y = 9 * TILESIZE;
-	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
-	tiles[11][9] = true;
-
-	rect2.x = 8 * TILESIZE;
-	rect2.y = 8 * TILESIZE;
-	SDL_BlitSurface(surf_textures,&rect,surf_map,&rect2);
-	tiles[8][8] = true;
-
-	// transfer pixedata from surface to texture
-	SDL_UpdateTexture(level_texture, NULL, surf_map->pixels, surf_map->pitch);
+	GraphicsUpdate();
 }
 
 int main( int argc, char* argv[] )
@@ -173,39 +90,26 @@ int main( int argc, char* argv[] )
 	// Initialize SDL.
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 			return 1;
-	
-	// Initialize SDL_TTF for font rendering
-	if( TTF_Init() == -1 )
-    {
-        return false;    
-    }
-	
+		
 	GraphicsSetup();
 
-	LoadLevel(surface_map, surface_textures);
+	LoadLevel();
 
 	player.set_pos(50,50);
 	player.set_direction(true);
-
-	anim_player.SetFrameRate(125);
-	anim_player.MaxFrames = 4;
 
 	// start delta timer
 	// used to change velocity of objects according to time (not fps)
 	delta.start();
 	// main loop
-	while (!ENDGAME) {
-		
+	while (!ENDGAME)
+	{
 		CallUpdate();
 		CallDraw();
 	}
 	
 	// clean up
-	GraphicsCleanup();
-
-	// close SDL_ttf
-	TTF_CloseFont(debug_font);
-    TTF_Quit();
+	GraphicsExit();
 
 	// close SDL
 	SDL_Quit();

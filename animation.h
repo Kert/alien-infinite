@@ -1,8 +1,8 @@
 #ifndef _animation_h_
     #define _animation_h_
- 
+
 #include <SDL.h>
- 
+
 class Animation {
     private:
         int    CurrentFrame;
